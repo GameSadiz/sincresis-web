@@ -47,6 +47,7 @@ export function DashboardEntrevistas({ entrevistas }: { entrevistas: EntrevistaD
   const [sonido, setSonido] = useState("todos");
   const [fase, setFase] = useState("todos");
   const [perfil, setPerfil] = useState("todos");
+  const [abierta, setAbierta] = useState<EntrevistaDashboard | null>(null);
 
   const gruposDisponibles = useMemo(() => {
     const set = new Set(entrevistas.map((e) => e.sesion?.participante?.grupo).filter(Boolean));
@@ -146,7 +147,11 @@ export function DashboardEntrevistas({ entrevistas }: { entrevistas: EntrevistaD
                 const p = e.sesion?.participante;
                 const s = e.sesion?.sonido;
                 return (
-                  <tr key={e.id}>
+                  <tr
+                    key={e.id}
+                    onClick={() => e.transcripcion && setAbierta(e)}
+                    className={e.transcripcion ? "cursor-pointer hover:bg-black/[0.02]" : ""}
+                  >
                     <td className="px-4 py-3 font-medium text-foreground">{p?.nombre ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1.5 text-foreground">
@@ -169,7 +174,13 @@ export function DashboardEntrevistas({ entrevistas }: { entrevistas: EntrevistaD
                     </td>
                     <td className="px-4 py-3 text-muted">{formatFecha(e.created_at)}</td>
                     <td className="max-w-[220px] truncate px-4 py-3 text-muted">
-                      {e.transcripcion ? `"${e.transcripcion.split("\n")[0]}"` : "Pendiente…"}
+                      {e.transcripcion ? (
+                        <span className="underline decoration-dotted underline-offset-2">
+                          &quot;{e.transcripcion.split("\n")[0]}&quot;
+                        </span>
+                      ) : (
+                        "Pendiente…"
+                      )}
                     </td>
                   </tr>
                 );
@@ -178,6 +189,44 @@ export function DashboardEntrevistas({ entrevistas }: { entrevistas: EntrevistaD
           </table>
         )}
       </div>
+
+      {abierta && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setAbierta(null)}
+        >
+          <div
+            className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-surface shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {abierta.sesion?.participante?.nombre ?? "Participante"}
+                </p>
+                <p className="mt-0.5 text-xs text-muted">
+                  Grupo {abierta.sesion?.participante?.grupo ?? "—"} · Fase{" "}
+                  {abierta.sesion?.fase ?? "—"} · {formatDuracion(abierta.duracion_segundos)} ·{" "}
+                  {formatFecha(abierta.created_at)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAbierta(null)}
+                aria-label="Cerrar"
+                className="shrink-0 text-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="overflow-y-auto px-6 py-4">
+              <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
+                {abierta.transcripcion}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
