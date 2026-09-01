@@ -5,14 +5,21 @@ export interface Sonido {
   archivo_url: string | null;
 }
 
+export type RolParticipante = "diseñador" | "general";
+
+/**
+ * Sujeto del experimento. No es un usuario de la app: el equipo captura
+ * sus datos al registrar la entrevista.
+ */
 export interface Participante {
   id: string;
-  user_id: string | null;
   nombre: string;
-  rol: "diseñador" | "general";
+  rol: RolParticipante;
   grupo: string;
   created_at: string;
 }
+
+export type ParticipanteOpcion = Pick<Participante, "id" | "nombre" | "rol" | "grupo">;
 
 export interface Sesion {
   id: string;
@@ -22,21 +29,15 @@ export interface Sesion {
   fecha: string;
 }
 
-export interface SesionConDetalle {
-  id: string;
-  fase: string;
-  participante: { nombre: string; grupo: string } | null;
-  sonido: { nombre: string; variante: string } | null;
-}
-
 export interface EntrevistaDashboard {
   id: string;
+  audio_url: string | null;
   duracion_segundos: number | null;
   transcripcion: string | null;
   created_at: string;
   sesion: {
     fase: string;
-    participante: { nombre: string; grupo: string; rol: "diseñador" | "general" } | null;
+    participante: { nombre: string; grupo: string; rol: RolParticipante } | null;
     sonido: { nombre: string; variante: string } | null;
   } | null;
 }

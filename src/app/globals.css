@@ -1,25 +1,115 @@
 @import "tailwindcss";
 
+/*
+  Paleta derivada de la fotografia del login: ambar sobre neutros calidos.
+
+  El ambar brillante (#f5b169) solo funciona sobre fondo oscuro; sobre blanco
+  no llega ni a 2:1 de contraste, asi que no puede ser el color de texto ni de
+  enlaces en las pantallas claras. Por eso hay dos rampas del mismo matiz:
+  --color-primary es la version profunda (legible sobre claro y utilizable como
+  relleno con texto blanco) y --color-accent es el ambar del login, reservado a
+  las superficies oscuras.
+
+  Como el primario paso a ser ambar, warning se corrio a un naranja rojizo para
+  no confundirse con el; los estados de validacion usan danger.
+*/
 :root {
-  --background: #f6f6f4;
-  --foreground: #18181b;
+  color-scheme: light;
+
+  --background: #f7f5f2;
+  --foreground: #1c1917;
 
   --color-surface: #ffffff;
-  --color-border: #e6e6e2;
-  --color-muted: #6b7280;
+  --color-border: #e9e3db;
+  --color-muted: #78716c;
 
-  --color-primary: #5b4fe8;
-  --color-primary-hover: #4a3fd6;
-  --color-primary-soft: #edebfd;
+  --color-primary: #a3661d;
+  --color-primary-hover: #8a5518;
+  --color-primary-soft: #fbf0e1;
+  /* Color del texto que va encima de --color-primary. */
+  --color-on-primary: #ffffff;
 
-  --color-danger: #ef4444;
-  --color-danger-soft: #fde8e8;
-  --color-success: #10b981;
-  --color-success-soft: #e3f9f0;
-  --color-warning: #d97706;
-  --color-warning-soft: #fdf3e0;
-  --color-info: #2563eb;
-  --color-info-soft: #e3ecfd;
+  /* Ambar del login: solo sobre superficies oscuras. */
+  --color-accent: #f5b169;
+  /* Texto que va encima del ambar: fijo, porque el ambar no cambia. */
+  --color-on-accent: #20160c;
+  /* La barra lateral es oscura en los dos temas, igual que el login. */
+  --color-sidebar: #111015;
+
+  --color-danger: #dc2626;
+  --color-danger-soft: #fdecea;
+  --color-success: #15803d;
+  --color-success-soft: #e7f4ec;
+  --color-warning: #c2410c;
+  --color-warning-soft: #fceee6;
+  --color-info: #1d4ed8;
+  --color-info-soft: #e9eefc;
+}
+
+/*
+  Los tokens oscuros se declaran dos veces a proposito: una para seguir la
+  preferencia del sistema y otra para la eleccion explicita del usuario. Sin la
+  primera, quien tenga el sistema en oscuro entraria a una app clara; sin la
+  segunda, el interruptor no podria imponerse a esa preferencia.
+*/
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --background: #100f13;
+    --foreground: #f4f1ee;
+
+    --color-surface: #18171c;
+    --color-border: #2c2932;
+    --color-muted: #a19a94;
+
+    --color-primary: #f5b169;
+    --color-primary-hover: #f9c68f;
+    --color-primary-soft: #2b2117;
+    --color-on-primary: #20160c;
+
+    --color-accent: #f5b169;
+    --color-on-accent: #20160c;
+    --color-sidebar: #17161b;
+
+    --color-danger: #f87171;
+    --color-danger-soft: #2f1a1a;
+    --color-success: #4ade80;
+    --color-success-soft: #14261b;
+    --color-warning: #fb923c;
+    --color-warning-soft: #2c1d12;
+    --color-info: #93b4fd;
+    --color-info-soft: #1a2136;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #100f13;
+  --foreground: #f4f1ee;
+
+  --color-surface: #18171c;
+  --color-border: #2c2932;
+  --color-muted: #a19a94;
+
+  --color-primary: #f5b169;
+  --color-primary-hover: #f9c68f;
+  --color-primary-soft: #2b2117;
+  --color-on-primary: #20160c;
+
+  --color-accent: #f5b169;
+  --color-on-accent: #20160c;
+  --color-sidebar: #17161b;
+
+  --color-danger: #f87171;
+  --color-danger-soft: #2f1a1a;
+  --color-success: #4ade80;
+  --color-success-soft: #14261b;
+  --color-warning: #fb923c;
+  --color-warning-soft: #2c1d12;
+  --color-info: #93b4fd;
+  --color-info-soft: #1a2136;
 }
 
 @theme inline {
@@ -31,6 +121,10 @@
   --color-primary: var(--color-primary);
   --color-primary-hover: var(--color-primary-hover);
   --color-primary-soft: var(--color-primary-soft);
+  --color-on-primary: var(--color-on-primary);
+  --color-accent: var(--color-accent);
+  --color-on-accent: var(--color-on-accent);
+  --color-sidebar: var(--color-sidebar);
   --color-danger: var(--color-danger);
   --color-danger-soft: var(--color-danger-soft);
   --color-success: var(--color-success);
@@ -46,4 +140,37 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Onda sonora del login: cada barra late con su propio retardo. */
+@keyframes onda {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Entrada escalonada de los bloques del login. */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Acercamiento lento del fondo del login (efecto Ken Burns). */
+@keyframes acercar {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.08);
+  }
 }

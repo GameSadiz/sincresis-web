@@ -12,9 +12,9 @@ const base =
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-white hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+    "bg-primary text-on-primary hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
   secondary:
-    "bg-transparent text-foreground border border-border hover:bg-black/[0.03]",
+    "bg-transparent text-foreground border border-border hover:bg-foreground/[0.04]",
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getRol } from "@/lib/auth/get-role";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -8,8 +7,5 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
-
-  const rol = await getRol(supabase, user.id);
-  redirect(rol === "equipo" ? "/equipo" : "/grabar");
+  redirect(user ? "/equipo" : "/login");
 }

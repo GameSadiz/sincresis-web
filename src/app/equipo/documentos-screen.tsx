@@ -1,28 +1,27 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Documento } from "@/lib/types";
+import { formatFecha, sanitizeFileName } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { TextInput } from "@/components/ui/text-input";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { ZonaArchivo } from "@/components/ui/zona-archivo";
+import { IconoArchivo } from "@/components/icono-archivo";
 
 const CATEGORIAS = ["Avance", "Marco teórico", "Acta de asesoría", "Otro"];
 
-function sanitizeFileName(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, "_");
-}
-
-function formatFecha(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
+/** Cada categoria con su tono, para poder escanear la lista de un vistazo. */
+const TONO_CATEGORIA: Record<string, BadgeTone> = {
+  Avance: "primary",
+  "Marco teórico": "info",
+  "Acta de asesoría": "success",
+  Otro: "neutral",
+};
 
 export function DocumentosScreen({
   miembroId,
@@ -44,7 +43,6 @@ export function DocumentosScreen({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [descargando, setDescargando] = useState<string | null>(null);
-  const archivoInputRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -92,7 +90,6 @@ export function DocumentosScreen({
     setNombre("");
     setCategoria("");
     setArchivo(null);
-    if (archivoInputRef.current) archivoInputRef.current.value = "";
     setUploading(false);
   }
 
@@ -109,105 +106,153 @@ export function DocumentosScreen({
   }
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Documentos</h1>
+    <main className="mx-auto max-w-5xl px-4 py-10">
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Documentos</h1>
         <p className="mt-1 text-sm text-muted">
           Avances, marco teórico y actas de asesoría del equipo.
         </p>
-      </div>
+      </header>
 
-      <Card>
-        <h2 className="text-sm font-semibold text-foreground">Subir documento</h2>
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nombre" htmlFor="nombre" error={errors.nombre}>
-              <TextInput
-                id="nombre"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej. Avance capítulo 2"
-                invalid={Boolean(errors.nombre)}
-              />
-            </Field>
-
-            <Field label="Categoría" htmlFor="categoria" error={errors.categoria}>
-              <Select
-                id="categoria"
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value)}
-                invalid={Boolean(errors.categoria)}
-              >
-                <option value="">Selecciona una categoría</option>
-                {CATEGORIAS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+      {/*
+        La lista es el contenido principal: es lo que el equipo consulta a
+        diario. Subir es una accion puntual, asi que va al panel lateral.
+      */}
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
+        <section>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-foreground">Todos los documentos</h2>
+            <span className="text-xs text-muted">
+              {documentos.length} {documentos.length === 1 ? "documento" : "documentos"}
+            </span>
           </div>
 
-          <Field label="Archivo" htmlFor="archivo" error={errors.archivo}>
-            <input
-              id="archivo"
-              ref={archivoInputRef}
-              type="file"
-              onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
-              className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary"
-            />
-          </Field>
-
-          {submitError && (
-            <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
-              {submitError}
-            </p>
-          )}
-
-          <Button type="submit" disabled={uploading} className="sm:w-auto">
-            {uploading ? "Subiendo…" : "Subir documento"}
-          </Button>
-        </form>
-      </Card>
-
-      <Card className="p-0">
-        <div className="border-b border-border px-6 py-4">
-          <h2 className="text-sm font-semibold text-foreground">
-            Ya subidos ({documentos.length})
-          </h2>
-        </div>
-
-        {documentos.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-muted">Todavía no hay documentos.</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {documentos.map((doc) => (
-              <li
-                key={doc.id}
-                className="flex items-center justify-between gap-4 px-6 py-4"
+          {documentos.length === 0 ? (
+            <Card className="flex flex-col items-center gap-2 py-14 text-center">
+              <svg
+                className="h-8 w-8 text-muted"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">{doc.nombre}</p>
-                  <p className="mt-1 text-xs text-muted">
-                    {doc.subido_por?.nombre ?? "—"} · {formatFecha(doc.fecha_subida)}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <Badge tone="primary">{doc.categoria}</Badge>
-                  <button
-                    type="button"
-                    onClick={() => handleDescargar(doc)}
-                    disabled={descargando === doc.id}
-                    className="text-xs font-semibold text-primary hover:text-primary-hover disabled:opacity-50"
+                <path d="M14 3v5h5" />
+                <path d="M6 3h8l5 5v13H6z" />
+              </svg>
+              <p className="text-sm font-medium text-foreground">Todavía no hay documentos</p>
+              <p className="max-w-[22rem] text-xs text-muted">
+                El primero que subas aparecerá aquí, con su categoría y quién lo cargó.
+              </p>
+            </Card>
+          ) : (
+            <Card className="overflow-hidden p-0">
+              <ul className="divide-y divide-border">
+                {documentos.map((doc) => (
+                  <li
+                    key={doc.id}
+                    className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-foreground/[0.03]"
                   >
-                    {descargando === doc.id ? "…" : "Descargar"}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+                    <IconoArchivo nombre={doc.archivo_url} />
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{doc.nombre}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted">
+                        {doc.subido_por?.nombre ?? "—"} · {formatFecha(doc.fecha_subida)}
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="hidden sm:inline">
+                        <Badge tone={TONO_CATEGORIA[doc.categoria] ?? "neutral"}>
+                          {doc.categoria}
+                        </Badge>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDescargar(doc)}
+                        disabled={descargando === doc.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-foreground/[0.05] disabled:opacity-50"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M10 3v9m0 0l-3.5-3.5M10 12l3.5-3.5" />
+                          <path d="M4 14v1.5A1.5 1.5 0 005.5 17h9a1.5 1.5 0 001.5-1.5V14" />
+                        </svg>
+                        {descargando === doc.id ? "Abriendo…" : "Descargar"}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </section>
+
+        {/* El panel acompaña el scroll de la lista en pantallas grandes. */}
+        <aside className="lg:sticky lg:top-6">
+          <Card>
+            <h2 className="text-sm font-semibold text-foreground">Subir documento</h2>
+
+            <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
+              <Field label="Nombre" htmlFor="nombre" error={errors.nombre}>
+                <TextInput
+                  id="nombre"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej. Avance capítulo 2"
+                  invalid={Boolean(errors.nombre)}
+                />
+              </Field>
+
+              <Field label="Categoría" htmlFor="categoria" error={errors.categoria}>
+                <Select
+                  id="categoria"
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                  invalid={Boolean(errors.categoria)}
+                >
+                  <option value="">Selecciona una categoría</option>
+                  {CATEGORIAS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+
+              <Field label="Archivo" htmlFor="archivo" error={errors.archivo}>
+                <ZonaArchivo
+                  id="archivo"
+                  archivo={archivo}
+                  onArchivo={setArchivo}
+                  invalid={Boolean(errors.archivo)}
+                />
+              </Field>
+
+              {submitError && (
+                <p className="rounded-lg bg-danger-soft px-3 py-2 text-xs text-danger">
+                  {submitError}
+                </p>
+              )}
+
+              <Button type="submit" disabled={uploading}>
+                {uploading ? "Subiendo…" : "Subir documento"}
+              </Button>
+            </form>
+          </Card>
+        </aside>
+      </div>
     </main>
   );
 }

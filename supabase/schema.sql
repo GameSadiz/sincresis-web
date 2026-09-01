@@ -19,12 +19,10 @@ create table if not exists miembros_equipo (
   created_at timestamptz not null default now()
 );
 
--- Participantes del experimento.
--- user_id se llena solo cuando el participante entra con su propia cuenta
--- (rol "participante" en Supabase Auth); permite que RLS aisle sus datos.
+-- Participantes del experimento. No son usuarios de la app: el equipo
+-- captura sus datos al subir cada entrevista.
 create table if not exists participantes (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete set null,
   nombre text not null,
   rol text not null check (rol in ('diseñador', 'general')),
   grupo text not null,
@@ -99,12 +97,12 @@ alter table documentos enable row level security;
 create policy "miembros_equipo_select" on miembros_equipo
   for select using (is_equipo() or user_id = auth.uid());
 
--- participantes: el equipo ve/edita todo; un participante solo ve y crea su propia fila.
+-- participantes: exclusivo del equipo.
 create policy "participantes_select" on participantes
-  for select using (is_equipo() or user_id = auth.uid());
+  for select using (is_equipo());
 
 create policy "participantes_insert" on participantes
-  for insert with check (is_equipo() or user_id = auth.uid());
+  for insert with check (is_equipo());
 
 create policy "participantes_update" on participantes
   for update using (is_equipo());
@@ -112,10 +110,9 @@ create policy "participantes_update" on participantes
 create policy "participantes_delete" on participantes
   for delete using (is_equipo());
 
--- sonidos: cualquier usuario autenticado puede leer (necesario para el formulario);
--- solo el equipo administra el catalogo.
+-- sonidos: catalogo interno del equipo.
 create policy "sonidos_select" on sonidos
-  for select using (auth.role() = 'authenticated');
+  for select using (is_equipo());
 
 create policy "sonidos_insert" on sonidos
   for insert with check (is_equipo());
@@ -126,18 +123,12 @@ create policy "sonidos_update" on sonidos
 create policy "sonidos_delete" on sonidos
   for delete using (is_equipo());
 
--- sesiones: el equipo ve todo; un participante solo ve/crea sesiones de su propia fila.
+-- sesiones: exclusivo del equipo.
 create policy "sesiones_select" on sesiones
-  for select using (
-    is_equipo()
-    or participante_id in (select id from participantes where user_id = auth.uid())
-  );
+  for select using (is_equipo());
 
 create policy "sesiones_insert" on sesiones
-  for insert with check (
-    is_equipo()
-    or participante_id in (select id from participantes where user_id = auth.uid())
-  );
+  for insert with check (is_equipo());
 
 create policy "sesiones_update" on sesiones
   for update using (is_equipo());
@@ -145,26 +136,12 @@ create policy "sesiones_update" on sesiones
 create policy "sesiones_delete" on sesiones
   for delete using (is_equipo());
 
--- entrevistas: mismo criterio, encadenado a traves de sesiones -> participantes.
+-- entrevistas: exclusivo del equipo.
 create policy "entrevistas_select" on entrevistas
-  for select using (
-    is_equipo()
-    or sesion_id in (
-      select s.id from sesiones s
-      join participantes p on p.id = s.participante_id
-      where p.user_id = auth.uid()
-    )
-  );
+  for select using (is_equipo());
 
 create policy "entrevistas_insert" on entrevistas
-  for insert with check (
-    is_equipo()
-    or sesion_id in (
-      select s.id from sesiones s
-      join participantes p on p.id = s.participante_id
-      where p.user_id = auth.uid()
-    )
-  );
+  for insert with check (is_equipo());
 
 create policy "entrevistas_update" on entrevistas
   for update using (is_equipo());
@@ -210,10 +187,10 @@ create policy "storage_documentos_update" on storage.objects
 create policy "storage_documentos_delete" on storage.objects
   for delete using (bucket_id = 'documentos' and is_equipo());
 
--- audios-entrevistas: cualquier usuario autenticado puede subir su grabacion;
--- solo el equipo puede listar/leer/borrar los audios despues.
+-- audios-entrevistas: el equipo sube las grabaciones hechas localmente y
+-- es el unico que puede listarlas, escucharlas o borrarlas.
 create policy "storage_audios_insert" on storage.objects
-  for insert with check (bucket_id = 'audios-entrevistas' and auth.role() = 'authenticated');
+  for insert with check (bucket_id = 'audios-entrevistas' and is_equipo());
 
 create policy "storage_audios_select" on storage.objects
   for select using (bucket_id = 'audios-entrevistas' and is_equipo());
@@ -234,7 +211,7 @@ create policy "storage_audios_delete" on storage.objects
 --
 --    (repite para Juliana y Samuel)
 --
--- 3. Cualquier otra cuenta que se registre (los participantes) queda
---    automaticamente como rol "participante": no aparece en miembros_equipo,
---    asi que las policies de arriba le niegan documentos y datos ajenos.
+-- 3. La app tiene un solo tipo de usuario. Una cuenta que no este en
+--    miembros_equipo no pasa del login: las policies de arriba le niegan
+--    todo, y el propio formulario la cierra sesion al detectarlo.
 -- =========================================================================

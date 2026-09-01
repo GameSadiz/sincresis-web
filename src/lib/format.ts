@@ -17,9 +17,14 @@ export function formatFecha(iso: string): string {
   });
 }
 
-const DOT_COLORS = ["bg-primary", "bg-danger", "bg-info", "bg-success", "bg-warning"];
+/** Storage rechaza acentos y espacios en las rutas: los normaliza. */
+export function sanitizeFileName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
 
-export function dotColorFor(value: string): string {
-  const sum = [...value].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  return DOT_COLORS[sum % DOT_COLORS.length];
+export function formatTamano(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${Math.round(kb)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
 }

@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMiembro } from "@/lib/auth/miembro";
 import type { Documento } from "@/lib/types";
 import { DocumentosScreen } from "./documentos-screen";
 
@@ -8,11 +10,10 @@ export default async function EquipoPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: miembro } = await supabase
-    .from("miembros_equipo")
-    .select("id, nombre")
-    .eq("user_id", user!.id)
-    .single();
+  if (!user) redirect("/login");
+
+  const miembro = await getMiembro(supabase, user.id);
+  if (!miembro) redirect("/login");
 
   const { data: documentos } = await supabase
     .from("documentos")
@@ -21,8 +22,8 @@ export default async function EquipoPage() {
 
   return (
     <DocumentosScreen
-      miembroId={miembro!.id}
-      miembroNombre={miembro!.nombre}
+      miembroId={miembro.id}
+      miembroNombre={miembro.nombre}
       documentosIniciales={(documentos as unknown as Documento[]) ?? []}
     />
   );
