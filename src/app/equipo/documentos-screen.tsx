@@ -57,7 +57,7 @@ export function DocumentosScreen({
 
     setUploading(true);
     const supabase = createClient();
-    const path = `${categoria}/${Date.now()}-${sanitizeFileName(archivo.name)}`;
+    const path = `${sanitizeFileName(categoria)}/${Date.now()}-${sanitizeFileName(archivo.name)}`;
 
     const { error: uploadError } = await supabase.storage
       .from("documentos")
