@@ -109,7 +109,7 @@ export function ZonaArchivo({
             {arrastrando ? "Suelta el archivo aquí" : "Arrastra un archivo"}
           </span>
           <span className="text-xs text-muted">
-            o <span className="font-semibold text-primary">búscalo en tu equipo</span>
+            o <span className="font-semibold text-primary">selecciónalo desde tu computador</span>
           </span>
         </label>
       )}

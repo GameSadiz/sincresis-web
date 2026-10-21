@@ -63,7 +63,9 @@ create table if not exists documentos (
   nombre text not null,
   categoria text not null,
   archivo_url text not null,
-  fecha_subida timestamptz not null default now()
+  fecha_subida timestamptz not null default now(),
+  -- Dia propio del documento (p. ej. el de la asesoria en un acta). Ver 005.
+  fecha_documento date
 );
 
 -- -------------------------------------------------------------------------
