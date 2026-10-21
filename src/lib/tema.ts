@@ -12,7 +12,29 @@ export const CLAVE_TEMA = "sincresis:tema";
 let cache: Tema | null = null;
 const oyentes = new Set<() => void>();
 
+function temaGuardado(): Tema | null {
+  try {
+    const valor = window.localStorage.getItem(CLAVE_TEMA);
+    return valor === "dark" || valor === "light" ? valor : null;
+  } catch {
+    return null;
+  }
+}
+
+/*
+  La eleccion guardada es la fuente de verdad. En produccion se vio el atributo
+  data-theme desaparecer del <html> despues de cargar (con "light" guardado):
+  el CSS volvia a seguir al sistema y el interruptor quedaba diciendo otra
+  cosa. Esto lo vuelve a poner cada vez que falta o no coincide.
+*/
+function sincronizarAtributo() {
+  const guardado = temaGuardado();
+  const raiz = document.documentElement;
+  if (guardado && raiz.dataset.theme !== guardado) raiz.dataset.theme = guardado;
+}
+
 function temaDelDocumento(): Tema {
+  sincronizarAtributo();
   const declarado = document.documentElement.dataset.theme;
   if (declarado === "dark" || declarado === "light") return declarado;
   // Sin eleccion explicita manda el sistema, igual que en el CSS.
@@ -53,10 +75,25 @@ export function suscribirTema(alCambiar: () => void) {
     alCambiar();
   }
 
+  // Si algo quita o cambia data-theme, se restaura la eleccion guardada.
+  const vigilante = new MutationObserver(() => {
+    const antes = document.documentElement.dataset.theme;
+    sincronizarAtributo();
+    if (document.documentElement.dataset.theme !== antes) {
+      cache = null;
+      alCambiar();
+    }
+  });
+  vigilante.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
+
   consulta.addEventListener("change", desdeElSistema);
   window.addEventListener("storage", desdeOtraPestana);
 
   return () => {
+    vigilante.disconnect();
     oyentes.delete(alCambiar);
     consulta.removeEventListener("change", desdeElSistema);
     window.removeEventListener("storage", desdeOtraPestana);
