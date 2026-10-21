@@ -115,7 +115,7 @@ export function DocumentosScreen({
 
   return (
     <main
-      className="relative min-h-screen max-w-5xl px-4 py-10 sm:px-8 lg:px-12"
+      className="relative min-h-screen w-full max-w-[1400px] px-4 py-10 sm:px-8 lg:px-12"
       onDragEnter={onDragEnter}
       onDragLeave={onDragLeave}
       onDragOver={(e) => e.preventDefault()}
