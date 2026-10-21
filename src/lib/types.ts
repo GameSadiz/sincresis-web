@@ -48,5 +48,10 @@ export interface Documento {
   categoria: string;
   archivo_url: string;
   fecha_subida: string;
+  /**
+   * Fecha propia del documento (yyyy-mm-dd), p. ej. el dia de la asesoria en
+   * un acta. Es opcional: si falta, manda la fecha de subida.
+   */
+  fecha_documento?: string | null;
   subido_por: { nombre: string } | null;
 }
