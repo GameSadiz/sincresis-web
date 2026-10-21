@@ -19,3 +19,11 @@ export type Fase = (typeof FASES)[number];
 export const OPCIONES_GRUPO = GRUPOS.map((g) => ({ value: g, label: `Grupo ${g}` }));
 
 export const OPCIONES_FASE = FASES.map((f) => ({ value: f, label: `Fase ${f}` }));
+
+/**
+ * Metas del diseño experimental: 4 grupos de 3 personas (12 participantes) y
+ * 12 entrevistas: 6 en la fase 1 y 6 en la fase 2 (submuestra de 6).
+ */
+export const META_PARTICIPANTES = 12;
+
+export const META_ENTREVISTAS = 12;
