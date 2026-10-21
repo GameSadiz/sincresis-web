@@ -6,6 +6,7 @@ import type { Documento } from "@/lib/types";
 import { formatFecha, formatFechaFlexible } from "@/lib/format";
 import {
   CATEGORIA_ACTA,
+  fechaReferencia,
   TONO_CATEGORIA,
   normalizar,
   ordenarDocumentos,
@@ -13,6 +14,12 @@ import {
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { IconoArchivo } from "@/components/icono-archivo";
+import {
+  ResumenDocumentos,
+  LineaAsesorias,
+  ActividadReciente,
+  AtajoSubida,
+} from "./panel-documentos";
 import { SubirDocumentoModal } from "./subir-documento-modal";
 import { DocumentoModal } from "./documento-modal";
 
@@ -20,7 +27,16 @@ const TODOS = "Todos";
 
 function IconoDescarga({ className = "" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M10 3v9m0 0l-3.5-3.5M10 12l3.5-3.5" />
       <path d="M4 14v1.5A1.5 1.5 0 005.5 17h9a1.5 1.5 0 001.5-1.5V14" />
     </svg>
@@ -80,9 +96,26 @@ export function DocumentosScreen({
     return documentos.filter(
       (d) =>
         (filtroActivo === TODOS || d.categoria === filtroActivo) &&
-        (!q || normalizar(`${d.nombre} ${d.categoria}`).includes(q))
+        (!q || normalizar(`${d.nombre} ${d.categoria}`).includes(q)),
     );
   }, [documentos, filtroActivo, busqueda]);
+
+  // La lista se agrupa por mes de la fecha de referencia (asesoria o subida).
+  const grupos = useMemo(() => {
+    const porMes = new Map<string, Documento[]>();
+    for (const d of visibles) {
+      const clave = fechaReferencia(d).slice(0, 7);
+      porMes.set(clave, [...(porMes.get(clave) ?? []), d]);
+    }
+    return [...porMes.entries()].map(([clave, docs]) => {
+      const [y, m] = clave.split("-").map(Number);
+      const mes = new Date(y, m - 1, 1).toLocaleDateString("es-CO", {
+        month: "long",
+        year: "numeric",
+      });
+      return { clave, titulo: mes.replace(" de ", " "), docs };
+    });
+  }, [visibles]);
 
   async function handleDescargar(doc: Documento) {
     setDescargando(doc.id);
@@ -115,7 +148,7 @@ export function DocumentosScreen({
 
   return (
     <main
-      className="relative min-h-screen max-w-5xl px-4 py-10 sm:px-8 lg:px-12"
+      className="relative min-h-screen w-full max-w-[1600px] px-4 py-10 sm:px-8 lg:px-12"
       onDragEnter={onDragEnter}
       onDragLeave={onDragLeave}
       onDragOver={(e) => e.preventDefault()}
@@ -133,7 +166,15 @@ export function DocumentosScreen({
           onClick={() => setSubida({ archivo: null })}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
             <path d="M10 4v12M4 10h12" />
           </svg>
           Subir documento
@@ -141,113 +182,165 @@ export function DocumentosScreen({
       </header>
 
       {documentos.length > 0 && (
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div role="tablist" aria-label="Filtrar por categoría" className="flex flex-wrap gap-1.5">
-            {pestanas.map(({ categoria, total }) => {
-              const activa = filtroActivo === categoria;
-              return (
-                <button
-                  key={categoria}
-                  type="button"
-                  role="tab"
-                  aria-selected={activa}
-                  onClick={() => setFiltro(categoria)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    activa
-                      ? "bg-foreground text-background"
-                      : "bg-foreground/[0.05] text-foreground hover:bg-foreground/[0.09]"
-                  }`}
-                >
-                  {categoria}
-                  <span className={activa ? "opacity-70" : "text-muted"}>{total}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <label className="relative block sm:w-64">
-            <span className="sr-only">Buscar documentos</span>
-            <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-              <circle cx="9" cy="9" r="5.5" />
-              <path d="M13 13l4 4" />
-            </svg>
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por nombre…"
-              className="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </label>
+        <div className="mt-8">
+          <ResumenDocumentos documentos={documentos} />
         </div>
       )}
 
-      <section className="mt-4">
-        {documentos.length === 0 ? (
-          <Card className="flex flex-col items-center gap-2 py-14 text-center">
-            <svg className="h-8 w-8 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M14 3v5h5" />
-              <path d="M6 3h8l5 5v13H6z" />
-            </svg>
-            <p className="text-sm font-medium text-foreground">Todavía no hay documentos</p>
-            <p className="max-w-[22rem] text-xs text-muted">
-              Arrastra un archivo a esta página o usa “Subir documento”.
-            </p>
-          </Card>
-        ) : visibles.length === 0 ? (
-          <Card className="py-12 text-center">
-            <p className="text-sm font-medium text-foreground">Ningún documento coincide</p>
-            <button
-              type="button"
-              onClick={() => {
-                setBusqueda("");
-                setFiltro(TODOS);
-              }}
-              className="mt-2 text-xs font-semibold text-primary hover:text-primary-hover"
-            >
-              Limpiar filtros
-            </button>
-          </Card>
-        ) : (
-          <Card className="overflow-hidden p-0!">
-            <ul className="divide-y divide-border">
-              {visibles.map((doc) => (
-                <li key={doc.id} className="group relative flex items-center gap-4 px-5 py-4 transition-colors hover:bg-foreground/[0.03]">
-                  <IconoArchivo nombre={doc.archivo_url} />
-
-                  <div className="min-w-0 flex-1">
-                    {/* El boton cubre toda la fila (after:inset-0) para abrir el detalle. */}
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+        <div className="min-w-0">
+          {documentos.length > 0 && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                role="tablist"
+                aria-label="Filtrar por categoría"
+                className="flex flex-wrap gap-1.5"
+              >
+                {pestanas.map(({ categoria, total }) => {
+                  const activa = filtroActivo === categoria;
+                  return (
                     <button
+                      key={categoria}
                       type="button"
-                      onClick={() => setAbierto(doc)}
-                      className="block max-w-full truncate text-left text-sm font-medium text-foreground after:absolute after:inset-0 focus:outline-none focus-visible:underline"
+                      role="tab"
+                      aria-selected={activa}
+                      onClick={() => setFiltro(categoria)}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        activa
+                          ? "bg-foreground text-background"
+                          : "bg-foreground/[0.05] text-foreground hover:bg-foreground/[0.09]"
+                      }`}
                     >
-                      {doc.nombre}
+                      {categoria}
+                      <span className={activa ? "opacity-70" : "text-muted"}>{total}</span>
                     </button>
-                    <p className="mt-0.5 truncate text-xs text-muted">{detalle(doc)}</p>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  <div className="relative flex shrink-0 items-center gap-2">
-                    <span className="hidden sm:inline">
-                      <Badge tone={TONO_CATEGORIA[doc.categoria] ?? "neutral"}>{doc.categoria}</Badge>
+              <label className="relative block sm:w-64">
+                <span className="sr-only">Buscar documentos</span>
+                <svg
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="9" cy="9" r="5.5" />
+                  <path d="M13 13l4 4" />
+                </svg>
+                <input
+                  type="search"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar por nombre…"
+                  className="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </label>
+            </div>
+          )}
+
+          <section className="mt-4 flex flex-col gap-6">
+            {documentos.length === 0 ? (
+              <Card className="flex flex-col items-center gap-2 py-14 text-center">
+                <svg
+                  className="h-8 w-8 text-muted"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 3v5h5" />
+                  <path d="M6 3h8l5 5v13H6z" />
+                </svg>
+                <p className="text-sm font-medium text-foreground">Todavía no hay documentos</p>
+                <p className="max-w-[22rem] text-xs text-muted">
+                  Arrastra un archivo a esta página o usa “Subir documento”.
+                </p>
+              </Card>
+            ) : visibles.length === 0 ? (
+              <Card className="py-12 text-center">
+                <p className="text-sm font-medium text-foreground">Ningún documento coincide</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBusqueda("");
+                    setFiltro(TODOS);
+                  }}
+                  className="mt-2 text-xs font-semibold text-primary hover:text-primary-hover"
+                >
+                  Limpiar filtros
+                </button>
+              </Card>
+            ) : (
+              grupos.map((grupo) => (
+                <div key={grupo.clave}>
+                  <h2 className="mb-2 flex items-baseline gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                    {grupo.titulo}
+                    <span className="font-normal normal-case tracking-normal">
+                      {grupo.docs.length} {grupo.docs.length === 1 ? "documento" : "documentos"}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDescargar(doc)}
-                      disabled={descargando === doc.id}
-                      aria-label={`Descargar ${doc.nombre}`}
-                      title="Descargar"
-                      className="rounded-lg p-2 text-muted transition-colors hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-50"
-                    >
-                      <IconoDescarga className="h-4 w-4" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
-      </section>
+                  </h2>
+                  <Card className="overflow-hidden p-0!">
+                    <ul className="divide-y divide-border">
+                      {grupo.docs.map((doc) => (
+                        <li
+                          key={doc.id}
+                          className="group relative flex items-center gap-4 px-5 py-4 transition-colors hover:bg-foreground/[0.03]"
+                        >
+                          <IconoArchivo nombre={doc.archivo_url} />
+
+                          <div className="min-w-0 flex-1">
+                            {/* El boton cubre toda la fila (after:inset-0) para abrir el detalle. */}
+                            <button
+                              type="button"
+                              onClick={() => setAbierto(doc)}
+                              className="block max-w-full truncate text-left text-sm font-medium text-foreground after:absolute after:inset-0 focus:outline-none focus-visible:underline"
+                            >
+                              {doc.nombre}
+                            </button>
+                            <p className="mt-0.5 truncate text-xs text-muted">{detalle(doc)}</p>
+                          </div>
+
+                          <div className="relative flex shrink-0 items-center gap-2">
+                            <span className="hidden sm:inline">
+                              <Badge tone={TONO_CATEGORIA[doc.categoria] ?? "neutral"}>
+                                {doc.categoria}
+                              </Badge>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDescargar(doc)}
+                              disabled={descargando === doc.id}
+                              aria-label={`Descargar ${doc.nombre}`}
+                              title="Descargar"
+                              className="rounded-lg p-2 text-muted transition-colors hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-50"
+                            >
+                              <IconoDescarga className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </Card>
+                </div>
+              ))
+            )}
+          </section>
+        </div>
+
+        <aside className="flex flex-col gap-4 xl:sticky xl:top-6">
+          <LineaAsesorias documentos={documentos} onAbrir={setAbierto} />
+          <ActividadReciente documentos={documentos} onAbrir={setAbierto} />
+          <AtajoSubida onSubir={() => setSubida({ archivo: null })} />
+        </aside>
+      </div>
 
       {arrastrando && (
         <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-primary/10 p-6 backdrop-blur-[1px]">
@@ -278,7 +371,9 @@ export function DocumentosScreen({
           conFecha={conFecha}
           onClose={() => setAbierto(null)}
           onActualizado={(doc) => {
-            setDocumentos((prev) => ordenarDocumentos(prev.map((d) => (d.id === doc.id ? doc : d))));
+            setDocumentos((prev) =>
+              ordenarDocumentos(prev.map((d) => (d.id === doc.id ? doc : d))),
+            );
             setAbierto(doc);
           }}
           onEliminado={(id) => {
