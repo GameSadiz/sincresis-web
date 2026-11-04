@@ -2,7 +2,13 @@ import type { BadgeTone } from "@/components/ui/badge";
 import type { Documento } from "@/lib/types";
 import { extensionDe } from "@/components/icono-archivo";
 
-export const CATEGORIAS = ["Avance", "Marco teórico", "Acta de asesoría", "Otro"] as const;
+export const CATEGORIAS = [
+  "Avance",
+  "Marco teórico",
+  "Acta de asesoría",
+  "Grupo focal",
+  "Otro",
+] as const;
 
 export const CATEGORIA_ACTA = "Acta de asesoría";
 
@@ -11,6 +17,7 @@ export const TONO_CATEGORIA: Record<string, BadgeTone> = {
   Avance: "primary",
   "Marco teórico": "info",
   "Acta de asesoría": "success",
+  "Grupo focal": "warning",
   Otro: "neutral",
 };
 

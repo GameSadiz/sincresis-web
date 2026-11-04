@@ -6,14 +6,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { alternarTema, leerTema, leerTemaServidor, suscribirTema } from "@/lib/tema";
 import { formatFechaFlexible } from "@/lib/format";
-import { META_ENTREVISTAS, META_PARTICIPANTES } from "@/lib/experimento";
+import { ENCUESTAS, SESIONES_GRUPO_FOCAL } from "@/lib/experimento";
 
 const CLAVE_CONTRAIDA = "sincresis:nav-contraida";
 
 /** Cifras que el layout calcula en el servidor para el bloque de estado. */
 export interface EstadoProyecto {
-  participantes: number | null;
-  entrevistas: number | null;
+  /** Sesiones de grupo focal con audio subido (de 3). */
+  gruposFocales: number | null;
   /** yyyy-mm-dd de la ultima acta con fecha, o null si no hay. */
   ultimaAsesoria: string | null;
 }
@@ -166,7 +166,7 @@ const SECCIONES: { titulo: string; enlaces: Enlace[] }[] = [
   },
   {
     titulo: "Experimento",
-    enlaces: [{ href: "/equipo/dashboard", label: "Entrevistas", Icono: IconoMicrofono }],
+    enlaces: [{ href: "/equipo/grupos-focales", label: "Grupos focales", Icono: IconoMicrofono }],
   },
   { titulo: "Producto", enlaces: [{ label: "Recomendador", Icono: IconoVarita }] },
 ];
@@ -186,8 +186,8 @@ function Barra({ valor, meta }: { valor: number | null; meta: number }) {
 /** Tarjeta de estado: avance del experimento y la ultima asesoria. */
 function TarjetaEstado({ estado }: { estado: EstadoProyecto }) {
   const filas = [
-    { label: "Participantes", valor: estado.participantes, meta: META_PARTICIPANTES },
-    { label: "Entrevistas", valor: estado.entrevistas, meta: META_ENTREVISTAS },
+    { label: "Encuestas", valor: ENCUESTAS.completadas, meta: ENCUESTAS.meta },
+    { label: "Grupos focales", valor: estado.gruposFocales, meta: SESIONES_GRUPO_FOCAL.length },
   ];
   return (
     <div className="mx-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-3.5">

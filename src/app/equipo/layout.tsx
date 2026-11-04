@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMiembro } from "@/lib/auth/miembro";
+import { CATEGORIA_GRUPO_FOCAL, sesionDe } from "@/lib/experimento";
 import { EquipoNav, type EstadoProyecto } from "./equipo-nav";
 
 export default async function EquipoLayout({ children }: { children: React.ReactNode }) {
@@ -14,11 +15,10 @@ export default async function EquipoLayout({ children }: { children: React.React
   const miembro = await getMiembro(supabase, user.id);
   if (!miembro) redirect("/login");
 
-  // Cifras del bloque de estado de la barra. Son conteos (head: true), asi que
-  // no traen filas; si alguna falla, la barra muestra "—" en vez de romperse.
-  const [participantes, entrevistas, ultimaActa] = await Promise.all([
-    supabase.from("participantes").select("id", { count: "exact", head: true }),
-    supabase.from("entrevistas").select("id", { count: "exact", head: true }),
+  // Cifras del bloque de estado de la barra; si alguna consulta falla, la
+  // barra muestra "—" en vez de romperse.
+  const [audios, ultimaActa] = await Promise.all([
+    supabase.from("documentos").select("nombre").eq("categoria", CATEGORIA_GRUPO_FOCAL),
     supabase
       .from("documentos")
       .select("fecha_documento")
@@ -30,8 +30,15 @@ export default async function EquipoLayout({ children }: { children: React.React
   ]);
 
   const estado: EstadoProyecto = {
-    participantes: participantes.error ? null : (participantes.count ?? 0),
-    entrevistas: entrevistas.error ? null : (entrevistas.count ?? 0),
+    // Sesiones distintas con audio, no archivos: dos versiones del mismo
+    // grupo focal cuentan una vez.
+    gruposFocales: audios.error
+      ? null
+      : new Set(
+          ((audios.data as { nombre: string }[] | null) ?? [])
+            .map((a) => sesionDe(a.nombre))
+            .filter(Boolean)
+        ).size,
     ultimaAsesoria:
       (ultimaActa.data as { fecha_documento: string | null } | null)?.fecha_documento ?? null,
   };
