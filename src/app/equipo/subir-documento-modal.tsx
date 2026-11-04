@@ -18,6 +18,10 @@ interface SubirDocumentoModalProps {
   archivoInicial: File | null;
   /** Falso mientras no se haya ejecutado la migracion 005 en Supabase. */
   conFecha: boolean;
+  /** Valores con los que abre el formulario (p. ej. desde Grupos focales). */
+  nombreInicial?: string;
+  categoriaInicial?: string;
+  titulo?: string;
   onClose: () => void;
   onSubido: (doc: Documento) => void;
 }
@@ -33,11 +37,14 @@ export function SubirDocumentoModal({
   miembroNombre,
   archivoInicial,
   conFecha,
+  nombreInicial,
+  categoriaInicial,
+  titulo = "Subir documento",
   onClose,
   onSubido,
 }: SubirDocumentoModalProps) {
-  const [nombre, setNombre] = useState(() => nombreSugerido(archivoInicial));
-  const [categoria, setCategoria] = useState("");
+  const [nombre, setNombre] = useState(() => nombreInicial ?? nombreSugerido(archivoInicial));
+  const [categoria, setCategoria] = useState(categoriaInicial ?? "");
   const [fecha, setFecha] = useState("");
   const [archivo, setArchivo] = useState<File | null>(archivoInicial);
   const [errors, setErrors] = useState<{
@@ -137,7 +144,7 @@ export function SubirDocumentoModal({
       >
         <div className="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
           <h2 id="titulo-subir" className="text-sm font-semibold text-foreground">
-            Subir documento
+            {titulo}
           </h2>
           <button
             type="button"

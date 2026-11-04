@@ -105,7 +105,7 @@ export default function LoginPage() {
               barraClassName="bg-accent"
             />
             <p className="mt-7 max-w-[28rem] text-sm leading-relaxed text-white/70">
-              Espacio de trabajo del equipo: entrevistas, transcripción y
+              Espacio de trabajo del equipo: encuestas, grupos focales y
               documentos de la investigación en un solo lugar.
             </p>
           </div>

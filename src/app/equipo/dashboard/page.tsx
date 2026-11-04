@@ -1,26 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
-import type { EntrevistaDashboard, ParticipanteOpcion, Sonido } from "@/lib/types";
-import { DashboardEntrevistas } from "./dashboard-entrevistas";
+import { redirect } from "next/navigation";
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
-
-  const [{ data: entrevistas }, { data: participantes }, { data: sonidos }] = await Promise.all([
-    supabase
-      .from("entrevistas")
-      .select(
-        "id, audio_url, duracion_segundos, transcripcion, created_at, sesion:sesiones(fase, participante:participantes(nombre, grupo, rol), sonido:sonidos(nombre, variante))"
-      )
-      .order("created_at", { ascending: false }),
-    supabase.from("participantes").select("id, nombre, rol, grupo").order("nombre"),
-    supabase.from("sonidos").select("id, nombre, variante, archivo_url").order("nombre"),
-  ]);
-
-  return (
-    <DashboardEntrevistas
-      entrevistasIniciales={(entrevistas as unknown as EntrevistaDashboard[]) ?? []}
-      participantes={(participantes as ParticipanteOpcion[]) ?? []}
-      sonidos={(sonidos as Sonido[]) ?? []}
-    />
-  );
+/*
+  Aqui estaba el registro de entrevistas de voz, que la practica ya no usa:
+  se midio con encuestas y grupos focales. La ruta se conserva para que los
+  enlaces viejos lleguen a la seccion nueva.
+*/
+export default function DashboardPage() {
+  redirect("/equipo/grupos-focales");
 }
