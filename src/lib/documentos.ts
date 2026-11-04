@@ -7,6 +7,7 @@ export const CATEGORIAS = [
   "Marco teórico",
   "Acta de asesoría",
   "Grupo focal",
+  "Presentación",
   "Otro",
 ] as const;
 
@@ -18,6 +19,7 @@ export const TONO_CATEGORIA: Record<string, BadgeTone> = {
   "Marco teórico": "info",
   "Acta de asesoría": "success",
   "Grupo focal": "warning",
+  Presentación: "danger",
   Otro: "neutral",
 };
 
